@@ -3,7 +3,7 @@ DC := $(DOCKER) compose -p universe -f infra/compose.yaml
 PHP_SERVICE ?= php
 NODE_SERVICE ?= node
 
-.PHONY: help backend frontend start stop build install up down test logs clean rebuild dev
+.PHONY: help backend frontend start stop build install up down test lint logs clean rebuild dev
 
 help: # Afficher l'aide dynamique et déléguer
 	@echo "\033[35;1mMonorepo Universe\033[0m - Aide (générée)"
@@ -37,6 +37,10 @@ down: # Stop + remove services ($(DC) down)
 test: up # Lancer tests backend + frontend (délégation)
 	@$(MAKE) -C apps/backend test || echo "Échec tests backend"
 	@$(MAKE) -C apps/frontend test || echo "Échec tests frontend"
+
+lint: up # Linter + analyse PHP (délégation backend)
+	@$(MAKE) -C apps/backend lint || echo "Échec lint backend"
+	@$(MAKE) -C apps/frontend lint || echo "Échec lint frontend"
 
 start: # Démarrer services ($(DC) start)
 	@$(DC) start

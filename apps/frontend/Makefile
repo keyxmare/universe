@@ -2,7 +2,7 @@
 DOCKER ?= docker
 DC ?= $(DOCKER) compose -p universe -f $(abspath ../../infra/compose.yaml)
 NODE_SERVICE ?= node
-.PHONY: help dev build test install
+.PHONY: help dev build test install lint
 
 help: # Afficher l'aide frontend dynamique
 	@echo "\033[35;1mFrontend (Vue + Vite)\033[0m - Help"
@@ -26,6 +26,9 @@ test: # Lancer tests unitaires (npm run test --silent)
 
 clean: # Nettoyer artefacts frontend (node_modules + dist)
 	@rm -rf node_modules dist || true
+
+lint: # Linter JS/TS (eslint)
+	@$(DC) exec $(NODE_SERVICE) sh -c 'npm run lint || echo "eslint erreurs"'
 
 rebuild: # Réinstaller frontend (clean + install + build)
 	@$(MAKE) clean install build

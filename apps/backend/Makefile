@@ -3,7 +3,7 @@
 DOCKER ?= docker
 DC ?= $(DOCKER) compose -p universe -f $(abspath ../../infra/compose.yaml)
 PHP_SERVICE ?= php
-.PHONY: help test build install
+.PHONY: help test build install lint
 
 help: # Afficher l'aide backend dynamique
 	@echo "\033[35;1mBackend (Symfony API)\033[0m - Help"
@@ -21,6 +21,10 @@ test: # Lancer tests PHPUnit (backend via container)
 
 clean: # Nettoyer artefacts backend (vendor, cache Symfony)
 	@rm -rf vendor var/cache/* var/log/* || true
+
+lint: # Linter + analyse (php-cs-fixer dry-run + phpstan)
+	@$(DC) exec $(PHP_SERVICE) sh -c 'vendor/bin/php-cs-fixer fix --dry-run --diff || echo "php-cs-fixer erreurs"'
+	@$(DC) exec $(PHP_SERVICE) sh -c 'vendor/bin/phpstan analyse --configuration=phpstan.neon || echo "phpstan erreurs"'
 
 rebuild: # Réinstaller backend (clean + install)
 	@$(MAKE) clean install

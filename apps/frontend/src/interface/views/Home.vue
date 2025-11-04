@@ -1,7 +1,16 @@
 <template>
   <section>
-    <h2>Accueil</h2>
-    <p>Ceci est la page d'accueil.</p>
+    <h2>Applications</h2>
+    <AppGrid :apps="applications" @select="goTo" />
   </section>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useRouter } from 'vue-router';
+import { applications } from '../../domain/app';
+import AppGrid from '../components/AppGrid.vue';
+
+const router = useRouter();
+function goTo(app: typeof applications[number]) {
+  router.push(app.route);
+}
+</script>
