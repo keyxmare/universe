@@ -9,7 +9,7 @@
 </template>
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue';
-import { Theme, resolveEffective, getInitialTheme, persistTheme } from '@app/themeService';
+import { Theme, resolveEffectiveTheme, deriveInitialTheme, persistSelectedTheme } from '@app/themeService';
 
 const options: Theme[] = ['light', 'dark', 'system'];
 function capitalize(t: string) { return t.charAt(0).toUpperCase() + t.slice(1); }
@@ -23,14 +23,14 @@ function getMatchMedia() {
 
 function apply(theme: Theme) {
   const mm = getMatchMedia();
-  const final = resolveEffective(theme, !!mm?.matches);
+  const final = resolveEffectiveTheme(theme, !!mm?.matches);
   document.documentElement.dataset.theme = final;
-  persistTheme(theme);
+  persistSelectedTheme(theme);
 }
 
 onMounted(() => {
   const mm = getMatchMedia();
-  current.value = getInitialTheme(!!mm?.matches);
+  current.value = deriveInitialTheme();
   apply(current.value);
   if (mm) {
     mm.addEventListener('change', () => {

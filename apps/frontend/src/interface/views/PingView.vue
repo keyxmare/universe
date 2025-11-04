@@ -10,7 +10,7 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { PingResult } from '@domain/ping';
-import { performPing } from '@app/pingService';
+import { executePingUseCase } from '@app/pingService';
 
 const { t } = useI18n();
 const loading = ref(false);
@@ -23,7 +23,7 @@ async function doPing() {
   error.value = null;
   data.value = null;
   try {
-    const result = await performPing();
+    const result = await executePingUseCase();
     data.value = result;
   } catch (e: unknown) {
     if (e instanceof Error) {

@@ -7,14 +7,26 @@ import { HttpError } from '@infra/errors';
  * Effectue un ping API.
  * @throws HttpError si le statut HTTP n'est pas OK.
  */
-async function ping(signal?: AbortSignal): Promise<PingResult> {
-  const url = `${apiBase()}/ping`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) {
-    throw new HttpError(`Ping failed with status ${res.status}`, res.status, url);
-  }
-  const data = (await res.json()) as PingResult;
-  return data;
+function buildPingEndpoint(baseApiUrl: string): string {
+  return `${baseApiUrl}/ping`;
 }
 
-export const pingGateway = { ping };
+async function executePingRequest(url: string, signal?: AbortSignal): Promise<Response> {
+  return fetch(url, { signal });
+}
+
+async function parsePingResponse(response: Response, url: string): Promise<PingResult> {
+  if (!response.ok) {
+    throw new HttpError(`Ping failed with status ${response.status}`, response.status, url);
+  }
+  return (await response.json()) as PingResult;
+}
+
+async function executePing(signal?: AbortSignal): Promise<PingResult> {
+  const baseApiUrl = apiBase();
+  const url = buildPingEndpoint(baseApiUrl);
+  const response = await executePingRequest(url, signal);
+  return parsePingResponse(response, url);
+}
+
+export const pingHttpGateway = { executePing };

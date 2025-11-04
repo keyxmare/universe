@@ -7,7 +7,7 @@ function required(key: string, value: string | undefined): string {
 }
 
 export function apiBase(): string {
-  const base = import.meta.env?.VITE_API_BASE;
+  const base = import.meta.environment?.VITE_API_BASE;
   if (!base) {
     // Fallback silencieux en environnement de test pour éviter échec global
     if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {

@@ -1,20 +1,20 @@
 // Persistence adaptateur pour le thème utilisateur
 export type RawTheme = 'light' | 'dark' | 'system';
-const KEY = 'theme';
+const THEME_STORAGE_KEY = 'theme';
 
-export function loadTheme(): RawTheme | null {
+export function readThemeFromStorage(): RawTheme | null {
   try {
-    const v = localStorage.getItem(KEY) as RawTheme | null;
-    return v || null;
+    const storedValue = localStorage.getItem(THEME_STORAGE_KEY) as RawTheme | null;
+    return storedValue || null;
   } catch {
     return null;
   }
 }
 
-export function saveTheme(theme: RawTheme): void {
+export function writeThemeToStorage(theme: RawTheme): void {
   try {
-    localStorage.setItem(KEY, theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   } catch {
-    // noop
+    // intentionally ignore persistence errors
   }
 }

@@ -1,7 +1,7 @@
 // Application layer: orchestrates ping use case
 import type { PingResult } from '@domain/ping';
-import { pingGateway } from '@infra/pingGateway';
+import { pingHttpGateway } from '@infra/pingGateway';
 
-export async function performPing(): Promise<PingResult> {
-  return pingGateway.ping();
+export async function executePingUseCase(): Promise<PingResult> {
+  return pingHttpGateway.executePing();
 }
