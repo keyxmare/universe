@@ -1,0 +1,54 @@
+services:
+  php:
+    build: ./docker/php
+    working_dir: /var/www/html
+    volumes:
+      - ../apps/backend:/var/www/html
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: postgresql://symfony:symfony@db:5432/app?serverVersion=16&charset=utf8
+
+  node:
+    image: node:20
+    working_dir: /workspace
+    volumes:
+      - ../apps/frontend:/workspace
+    command: sh -c "npm install && npm run dev"
+    expose:
+      - "5173"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.universe-frontend.rule=Host(`universe.localhost`) && PathPrefix(`/`)"
+      - "traefik.http.routers.universe-frontend.entrypoints=websecure"
+      - "traefik.http.routers.universe-frontend.tls=true"
+      - "traefik.http.services.universe-frontend.loadbalancer.server.port=5173"
+      - "traefik.http.services.universe-frontend.loadbalancer.server.scheme=http"
+      - "traefik.http.routers.universe-frontend.service=universe-frontend"
+      - "traefik.http.services.universe-frontend.loadbalancer.passHostHeader=true"
+    networks:
+      - default
+      - traefik
+
+  nginx:
+    image: nginx:1.27
+    volumes:
+      - ../apps/backend:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - php
+      - node
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.universe-api.rule=Host(`api.universe.localhost`)"
+      - "traefik.http.routers.universe-api.entrypoints=websecure"
+      - "traefik.http.routers.universe-api.tls=true"
+      - "traefik.http.services.universe-api.loadbalancer.server.port=80"
+    networks:
+      - traefik
+      - default
+
+networks:
+  traefik:
+    external: true
+  default:
+    driver: bridge

@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-php:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: xdebug
+          tools: composer
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: apps/backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('apps/backend/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-
+
+      - name: Install dependencies (backend)
+        working-directory: apps/backend
+        run: composer install --no-interaction --prefer-dist
+
+      - name: PHPStan
+        working-directory: apps/backend
+        run: vendor/bin/phpstan analyse || true
+
+      - name: CS Fixer Dry Run
+        working-directory: apps/backend
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff || true
+
+      - name: Export OpenAPI
+        working-directory: apps/backend
+        run: php bin/console api:openapi:export --output openapi.json
+
+      - name: Move OpenAPI spec
+        run: mv apps/backend/openapi.json packages/contracts/openapi.json
+
+      - name: Run PHPUnit tests (with coverage)
+        working-directory: apps/backend
+        run: vendor/bin/phpunit --colors=always --coverage-clover build/coverage/clover.xml --coverage-text
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: apps/backend/build/coverage/clover.xml
+
+      - name: Upload OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-spec
+          path: packages/contracts/openapi.json
+
+  frontend-node:
+    runs-on: ubuntu-latest
+    needs: backend-php
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download OpenAPI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-spec
+          path: packages/contracts
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm install
+
+      - name: Generate TS types from OpenAPI
+        working-directory: apps/frontend
+        run: npx openapi-typescript ../../packages/contracts/openapi.json -o ../../packages/shared-js/src/types/api-types.ts
+
+      - name: Lint (ESLint)
+        working-directory: apps/frontend
+        run: npm run lint || true
+
+      - name: Run Vitest tests (with coverage)
+        working-directory: apps/frontend
+        run: npm run test:coverage || true
+
+      - name: Upload frontend coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: apps/frontend/coverage
+
+      - name: Build frontend
+        working-directory: apps/frontend
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: apps/frontend/dist

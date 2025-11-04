@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Node (frontend)
+apps/frontend/node_modules/
+apps/frontend/dist/
+
+# Symfony / PHP (backend)
+apps/backend/vendor/
+apps/backend/var/
+apps/backend/.env.local
+apps/backend/.env.test.local
+apps/backend/public/bundles/
+
+# Logs
+*.log
+
+# Coverage / cache
+coverage/
+.cache/
+
+# Misc
+.env
