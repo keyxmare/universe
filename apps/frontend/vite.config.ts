@@ -8,7 +8,8 @@ export default defineConfig({
     host: '0.0.0.0',
     hmr: {
       host: 'universe.localhost',
-      protocol: 'wss'
+      protocol: 'wss',
+      clientPort: 443,
     }
   },
 });

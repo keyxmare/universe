@@ -1,97 +1,65 @@
-# Monorepo Symfony + Vue Makefile (compose-based)
-# Toutes les commandes passent par docker compose (services définis dans docker-compose.yml)
+DOCKER ?= docker
+DC := $(DOCKER) compose -p universe -f infra/compose.yaml
+PHP_SERVICE ?= php
+NODE_SERVICE ?= node
 
-BACKEND_DIR=apps/backend
-FRONTEND_DIR=apps/frontend
-CONTRACTS_FILE=packages/contracts/openapi.json
-COMPOSER_RUN=docker compose -f infra/compose.yaml run --rm php composer
-NODE_RUN=docker compose -f infra/compose.yaml run --rm node
+.PHONY: help backend frontend start stop build install up down test logs clean rebuild dev
 
-.PHONY: help backend-install backend-console frontend-install frontend-dev gen-openapi gen-types gen-all dev lint-php lint-js test-php php-cs-fix clean
+help: # Afficher l'aide dynamique et déléguer
+	@echo "\033[35;1mMonorepo Universe\033[0m - Aide (générée)"
+	@echo "\033[36;1mCommandes racine:\033[0m"
+	@grep -E '^[a-zA-Z0-9_.%-]+:.*# ' $(MAKEFILE_LIST) | while IFS= read -r line; do \
+		target=$${line%%:*}; \
+		desc=$${line##*# }; \
+		printf "  \033[32m%-20s\033[0m %s\n" "$$target" "$$desc"; \
+	done
+	@echo ""
+	@echo "\033[36;1mSous-projets:\033[0m"
+	@for dir in apps/backend apps/frontend; do \
+		if [ -f $$dir/Makefile ]; then \
+			printf "\n\033[33;1m[$$dir]\033[0m\n"; \
+			$(MAKE) -C $$dir help; \
+		fi; \
+	done
 
-help:
-	@echo "Cibles disponibles:"
-	@echo "  backend-install     : composer install (service php)"
-	@echo "  backend-console ARGS: commande console Symfony dans service php"
-	@echo "  frontend-install    : npm install (service node)"
-	@echo "  frontend-dev        : npm run dev (service node)"
-	@echo "  gen-openapi         : export OpenAPI vers $(CONTRACTS_FILE)"
-	@echo "  gen-types           : générer types TypeScript depuis OpenAPI"
-	@echo "  gen-all             : openapi + types"
-	@echo "  dev                 : (simple) lance backend + frontend locaux (non compose)"
-	@echo "  lint-php            : phpstan + php-cs-fixer (dry-run) via compose"
-	@echo "  lint-js             : eslint via compose"
-	@echo "  php-cs-fix          : appliquer corrections php-cs-fixer via compose"
-	@echo "  test-js             : tests frontend (vitest)"
-	@echo "  build               : build images (infra/compose.yaml)"
-	@echo "  start               : démarrer les services (détaché)"
-	@echo "  stop                : arrêter les services"
+backend: # Déléguer vers backend (usage: make backend <cible>)
+	@$(MAKE) -C apps/backend $(filter-out $@,$(MAKECMDGOALS))
 
-backend-install:
-	$(COMPOSER_RUN) install
+frontend: # Déléguer vers frontend (usage: make frontend <cible>)
+	@$(MAKE) -C apps/frontend $(filter-out $@,$(MAKECMDGOALS))
 
-backend-console:
-	docker compose -f infra/compose.yaml run --rm php php bin/console $(filter-out $@,$(MAKECMDGOALS))
+up: # Créer/démarrer services + lancer dev frontend (detach)
+	@$(DC) up -d
 
-frontend-install:
-	$(NODE_RUN) npm install
+down: # Stop + remove services ($(DC) down)
+	@$(DC) down
 
-frontend-dev:
-	$(NODE_RUN) npm run dev
+test: up # Lancer tests backend + frontend (délégation)
+	@$(MAKE) -C apps/backend test || echo "Échec tests backend"
+	@$(MAKE) -C apps/frontend test || echo "Échec tests frontend"
 
-# Export du schéma OpenAPI via API Platform
-gen-openapi:
-	docker compose -f infra/compose.yaml run --rm php php bin/console api:openapi:export --output openapi.json
-	mv $(BACKEND_DIR)/openapi.json $(CONTRACTS_FILE)
+start: # Démarrer services ($(DC) start)
+	@$(DC) start
 
-# Génération des types TS (nécessite openapi.json) via openapi-typescript
-gen-types:
-	cp $(CONTRACTS_FILE) $(FRONTEND_DIR)/openapi.json
-	$(NODE_RUN) npx openapi-typescript openapi.json -o ../../packages/shared-js/src/types/api-types.ts || (rm $(FRONTEND_DIR)/openapi.json; exit 1)
-	rm $(FRONTEND_DIR)/openapi.json
-	@echo "Types générés: packages/shared-js/src/types/api-types.ts"
+stop: # Arrêter services ($(DC) stop)
+	@$(DC) stop
 
-# Tout en une fois
-gen-all: gen-openapi gen-types
+build: # Construire images ($(DC) build)
+	@$(DC) build
 
-# (Ancien) Lancement simple hors conteneur pour usage rapide.
-dev:
-	@echo "Démarrage backend (port 8000) et frontend (port 5173) hors docker compose"
-	@make -j2 backend-serve frontend-dev || true
+VERBOSE ?= 0
 
-# Lint PHP via services compose
-lint-php:
-	$(COMPOSER_RUN) exec -- vendor/bin/phpstan analyse || true
-	$(COMPOSER_RUN) exec -- vendor/bin/php-cs-fixer fix --dry-run --diff || true
+install: up # Installer dépendances (backend + frontend via containers, VERBOSE=$(VERBOSE))
+	@echo "[backend] install (container)" && $(MAKE) -C apps/backend VERBOSE=$(VERBOSE) install
+	@echo "[frontend] install (container)" && $(MAKE) -C apps/frontend VERBOSE=$(VERBOSE) install
 
+logs: # Suivre logs agrégés (-f)
+	@$(DC) logs -f --tail=100
 
-lint-js:
-	$(NODE_RUN) npm run lint || true
+clean: # Nettoyer dépendances (vendor + node_modules locaux)
+	@echo "[backend] clean vendor" && rm -rf apps/backend/vendor || true
+	@echo "[frontend] clean node_modules" && rm -rf apps/frontend/node_modules || true
 
-# Tests frontend (Vitest)
-test-js:
-	$(NODE_RUN) npm run test:coverage || true
+rebuild: down build up install # Recréer environnement propre
+	@echo "Rebuild complet effectué"
 
-# Tests PHP
-test-php:
-	$(COMPOSER_RUN) exec vendor/bin/phpunit || echo "PHPUnit non installé"
-
-# Corrections php-cs-fixer
-php-cs-fix:
-	$(COMPOSER_RUN) exec vendor/bin/php-cs-fixer fix --verbose
-
-# Serveur local PHP intégré (option hors compose) conservé pour usage ponctuel
-backend-serve:
-	php -S 0.0.0.0:8000 -t $(BACKEND_DIR)/public $(BACKEND_DIR)/public/index.php
-
-build:
-	docker compose -f infra/compose.yaml build
-
-start:
-	docker compose -f infra/compose.yaml up -d
-
-stop:
-	docker compose -f infra/compose.yaml down
-
-clean:
-	rm -rf $(BACKEND_DIR)/var/cache/* $(FRONTEND_DIR)/dist

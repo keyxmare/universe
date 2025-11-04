@@ -5,211 +5,217 @@ Modèle A: chaque application garde son propre manifest (`composer.json` dans le
 ## Sommaire
 1. Objectifs & Philosophie
 2. Structure d'architecture
-3. Flux OpenAPI / Types partagés
-4. Prérequis & Installation
-5. Démarrage développement
-6. Génération des contrats & Types
-7. Qualité & Lint
-8. Tests (plan)
-9. Conventions de contribution
-10. Décisions (ADR)
-11. Roadmap
+3. Sous-domaines & Accès dev
+4. Flux OpenAPI / Types partagés
+5. Prérequis & Installation
+6. Démarrage développement
+7. Configuration Front (Vite / API Base)
+8. Génération des contrats & Types
+9. Qualité & Lint
+10. Tests
+11. Conventions de contribution
+12. Décisions (ADR)
+13. Roadmap
+14. FAQ rapide
+15. Cibles Makefile
+16. Sécurité (prévision)
+17. Contribution
 
 ---
 ## 1. Objectifs & Philosophie
 - Séparer clairement backend (API HTTP REST/JSON) et frontend (SPA Vue + Vite).
 - Favoriser l'évolution indépendante (cycles de release différents).
 - Réduire le couplage par un contrat explicite (OpenAPI) versionné dans `packages/contracts`.
-- Offrir un espace pour le code transversal JS (types, petits utilitaires) dans `packages/shared-js`.
+- Partager uniquement des types générés (`packages/shared-js`).
 - Rester minimaliste et itératif; ajouter seulement ce qui sert un besoin concret.
 
 ## 2. Structure d'architecture
 ```
 apps/
-  backend/         # Projet Symfony (API Platform, CORS, Domain code)
-  frontend/        # Projet Vue (Vite, Pinia, Router)
+  backend/         # Projet Symfony (API Platform ultérieurement, Domain, Application, Interface)
+  frontend/        # Projet Vue (stratifié: domain/application/infrastructure/interface)
 packages/
   contracts/       # Fichier openapi.json exporté depuis backend
   shared-js/       # Types TS générés + helpers transversaux
 infra/
-  docker/          # Dockerfiles et config nginx
-scripts/           # Scripts utilitaires (ex: gen-types.sh)
+  docker/          # Dockerfiles & config nginx, Traefik (docker externe)
+  compose.yaml     # Définition des services (node, php, nginx)
 docs/              # Documentation technique, ADR
+Makefile           # Cibles build/test/outils
 ```
-Détails backend (ciblé) :
+Backend (couches):
 ```
 apps/backend/src/
-  Domain/          # (à créer) Entités métier, Value Objects
-  Application/     # (à créer) Use cases, services applicatifs
-  Infrastructure/  # (à créer) Adaptateurs (Doctrine, HTTP, etc.)
-  Interface/       # (à créer) Contrôleurs, DTO entrée/sortie
+  Domain/          # Entités métier, Value Objects (sans Symfony)
+  Application/     # Use cases / services applicatifs (sans Symfony)
+  Interface/       # Adaptateurs (Controllers HTTP, CLI, etc.)
+  Infrastructure/  # Adapters externes (DB, FS, etc.)
 ```
-Détails frontend :
+Frontend (couches):
 ```
 apps/frontend/src/
-  views/           # Pages routées
-  router/          # Configuration Vue Router
-  store/           # Pinia stores
-  api/             # Clients/fonctions d'accès API
-  components/      # (à créer) Composants UI réutilisables
+  domain/          # Modèle métier & types internes
+  application/     # Orchestration des use cases (services)
+  infrastructure/  # Gateways HTTP, store Pinia, persistance locale
+  interface/       # Vue components (views, router, main)
 ```
 
-## 3. Flux OpenAPI / Types partagés
-1. Le backend expose le schéma via API Platform (`api:openapi:export`).
-2. Le schéma est déplacé dans `packages/contracts/openapi.json` pour être versionné.
-3. Génération des types TypeScript depuis le schéma => `packages/shared-js/src/types/api-types.ts`.
-4. Le frontend et toute lib JS interne importent ces types pour les appels API.
-5. Régénérer à chaque changement de endpoints ou modèles.
+## 3. Sous-domaines & Accès dev
+En environnement docker + Traefik:
+- Frontend: `universe.localhost`
+- Backend/API: `api.universe.localhost`
 
-## 4. Prérequis & Installation
-Prérequis outils (optionnel grâce aux images Docker des cibles Makefile) :
+Ajouter dans `/etc/hosts` (ou équivalent) :
+```
+127.0.0.1 universe.localhost api.universe.localhost
+```
+Tous les endpoints backend sont servis directement sur le sous-domaine API (pas de préfixe `/api`). Exemple ping: `https://api.universe.localhost/ping`.
+Le domaine frontend ne sert que la SPA (proxy Vite) et ne doit pas exposer d'endpoints PHP.
+
+## 4. Flux OpenAPI / Types partagés
+1. Export backend du schéma (`make gen-openapi`).
+2. Commit dans `packages/contracts/openapi.json`.
+3. Génération des types TypeScript (`make gen-types`) dans `packages/shared-js/src/types/api-types.ts`.
+4. Import des types côté frontend (ex: `import { ... } from 'packages/shared-js/src/types/api-types'`).
+5. Régénérer à chaque changement d'entités ou de routes.
+
+## 5. Prérequis & Installation
+Outils locaux (optionnels si usage Docker):
 - PHP ≥ 8.3 + Composer
 - Node.js ≥ 20 + npm
-- Docker (si usage des images officielles via Makefile)
+- Docker + Traefik (réseau externe `traefik`)
 
-Installation classique (local hors Docker) :
+Installation locale:
 ```
 (cd apps/backend && composer install)
 (cd apps/frontend && npm install)
 ```
-Installation via Makefile (Docker images) :
+Via Makefile (containers):
 ```
 make backend-install
 make frontend-install
 ```
 
-## 5. Démarrage développement
-Backend (serveur PHP intégré port 8000) :
+## 6. Démarrage développement
+Lancer services (php, node, nginx) via docker compose (cf. `infra/compose.yaml`) ou cibles Makefile:
 ```
-make backend-serve
+make dev            # (optionnel: script combiné si ajouté)
+make frontend-dev   # Vite sur 5173 (proxy via universe.localhost)
+make backend-serve  # Option locale hors nginx/Traefik
 ```
-Frontend (Vite port 5173) :
-```
-make frontend-dev
-```
-Démarrage simultané (non supervisé) :
-```
-make dev
-```
-Accès :
-- API: http://localhost:8000
-- Frontend: http://localhost:5173
+Accès domaines:
+- Front: http(s)://universe.localhost
+- API:   http(s)://api.universe.localhost
 
-## 6. Génération des contrats & Types
-Export OpenAPI + génération types en une seule commande :
+## 7. Configuration Front (Vite / API Base)
+Variable d'environnement définissant la base API:
+```
+apps/frontend/.env.development:
+VITE_API_BASE=https://api.universe.localhost
+```
+Utilisation dans le code:
+```
+fetch(`${import.meta.env.VITE_API_BASE}/ping`)
+```
+HMR configuré en WebSocket simple (non TLS) côté dev. Ajuster `vite.config.ts` si HTTPS + certificat fiable requis.
+
+## 8. Génération des contrats & Types
+Commande combinée:
 ```
 make gen-all
 ```
-Étapes séparées :
+Étapes séparées:
 ```
-make gen-openapi   # produit packages/contracts/openapi.json
-make gen-types     # produit packages/shared-js/src/types/api-types.ts
+make gen-openapi   # met à jour openapi.json
+make gen-types     # régénère api-types.ts
 ```
-Script alternatif : `scripts/gen-types.sh` (peut être appelé dans CI).
+Inclure la diff OpenAPI dans la revue si endpoints changent.
 
-## 7. Qualité & Lint
-Backend :
-- Analyse statique: PHPStan (`apps/backend/phpstan.neon`).
-- Format/Style: PHP-CS-Fixer (`apps/backend/.php-cs-fixer.dist.php`).
-Frontend :
-- ESLint (`apps/frontend/.eslintrc.cjs`).
-- Prettier (`apps/frontend/.prettierrc.json`).
-Commandes (placeholders robustes) :
+## 9. Qualité & Lint
+Backend:
+- PHPStan niveau défini dans `apps/backend/phpstan.neon`.
+- PHP-CS-Fixer (PSR-12 + règles projet).
+Frontend:
+- ESLint + plugin Vue.
+- Prettier (quotes simples, largeur 100, points-virgules).
+Cibles:
 ```
 make lint-php
 make lint-js
 ```
 
-## 8. Tests (plan)
-Backend (à ajouter) :
+## 10. Tests
+Backend:
 ```
-composer require --dev phpunit/phpunit
-# Créer dossier tests/ avec premiers cas (Ping, Status)
-make test-php  # après installation
+vendor/bin/phpunit                    # tous
+vendor/bin/phpunit tests/Controller/PingControllerTest.php
 ```
-Frontend :
+Frontend:
 ```
-npm install -D vitest @vitest/ui jsdom
-# Ajouter script "test": "vitest"
+npm run test        # vitest run
+npm run test:coverage
 ```
-Intégration CI : ajouter étapes pour exécuter `make test-php` puis `npm run test` (frontend) après génération des types.
+Règles:
+- Mock `fetch` côté frontend (pas d'appel réseau réel).
+- Pas de dépendance Symfony dans Domain/Application.
+- Contrôleurs testés via WebTestCase + assertions HTTP.
 
-## 9. Conventions de contribution
-Branches :
-- `feat/<description>` nouvelles fonctionnalités
-- `fix/<description>` corrections de bugs
-- `chore/<description>` tâches techniques (maj deps, refacto légère)
-- `docs/<description>` documentation
-Commits (Conventional Commits) :
-```
-feat: ajouter endpoint status
-fix: corriger réponse ping invalide
-chore: mettre à jour dépendances frontend
-```
-Pull Requests :
-- Inclure le "pourquoi" dans la description.
-- Lier à une issue si existante.
+## 11. Conventions de contribution
+Branches: `feat/*`, `fix/*`, `chore/*`, `docs/*`.
+Commits orientés "pourquoi" (Conventional Commits).
+Toujours régénérer schéma + types avant PR si endpoints changent.
 
-## 10. Décisions (ADR)
-Dossier: `docs/adr/` (à créer). Chaque décision :
-- Identifiant incrémental (ex: `0001-modele-monorepo.md`).
-- Contexte, décision, conséquences, alternatives rejetées.
-Décisions à formaliser :
-1. Choix Modèle A (manifests isolés).
-2. Usage API Platform pour accélérer la livraison d'OpenAPI.
-3. Génération des types côté frontend plutôt qu'un SDK complet.
+## 12. Décisions (ADR)
+Dossier: `docs/adr`. Format: Contexte / Décision / Conséquences / Alternatives.
+ADR existantes: voir `docs/adr/0001-...`, `0002-...`.
 
-## 11. Roadmap
-Court terme (Semaine 1) :
-- Ajouter tests initiaux backend & frontend.
-- Intégrer exécution tests dans CI.
-- Mettre en place ADR initiale.
-- Générer baseline PHPStan si bruit.
-Moyen terme :
-- Authentification (JWT via `lexik/jwt-authentication-bundle`).
-- Gestion erreurs unifiée (normalizers API Platform + interceptors frontend).
-- Observabilité (logs structurés + éventuellement tracing). 
-Long terme :
-- Déploiement containerisé (Docker/Helm).
-- Sécurité avancée (rate limiting, audit).
-- Internationalisation frontend.
+## 13. Roadmap
+Court terme:
+- Stabiliser séparation sous-domaines.
+- Couverture tests ping end-to-end.
+- Automatiser gen-all en CI.
+Moyen terme:
+- Auth JWT.
+- Normalisation erreurs (backend + interceptors fetch).
+Long terme:
+- Déploiement container orchestration.
+- Monitoring / tracing.
 
-## 12. FAQ rapide
+## 14. FAQ rapide
+Q: Pourquoi un sous-domaine API plutôt qu'un préfixe `/api` ?
+A: Séparation claire cache/CORS, règles de sécurité distinctes, pas de réécriture interne.
 Q: Quand régénérer les types ?
-A: À chaque modification d'entité exposée, d'endpoint ou de schéma (avant merge du PR).
-Q: Peut-on ajouter un package partagé PHP ?
-A: Oui, prévoir `packages/shared-php` si besoin de logique transverse serveur.
-Q: Comment éviter la dérive schéma/types ?
-A: Automatiser `make gen-all` dans CI et comparer diff (future étape).
+A: Avant chaque PR modifiant endpoints ou schéma.
+Q: Peut-on ajouter un SDK JS ?
+A: Préférer types + gateways légers; un SDK arrive seulement si logique client complexe.
 
----
-## 13. Scripts & Cibles Makefile (récapitulatif)
-Principales cibles :
+## 15. Cibles Makefile (récapitulatif)
 ```
-backend-install   # composer install
-backend-serve     # serveur PHP local (8000)
-backend-console   # exécuter commande Symfony (ex: make backend-console cache:clear)
-frontend-install  # npm install
-frontend-dev      # serveur Vite (5173)
-gen-openapi       # export schéma OpenAPI
-gen-types         # génération types TS
-gen-all           # schéma + types
-lint-php          # phpstan + cs-fixer dry-run
-lint-js           # eslint (frontend)
+backend-install
+backend-serve
+backend-console <cmd>
+frontend-install
+frontend-dev
+gen-openapi
+gen-types
+gen-all
+lint-php
+lint-js
 ```
 
-## 14. Sécurité (prévision)
-- Activer stricts headers CORS une fois domaines connus.
-- Ajouter authentification JWT + rafraîchissement sécurisé.
-- Scanner dépendances (npm audit, composer audit) dans CI (future étape).
+## 16. Sécurité (prévision)
+- CORS restrictif une fois domaines figés.
+- Auth JWT + refresh sécurisé.
+- Analyse dépendances (npm audit / composer audit) en CI.
 
-## 15. Contribution
-1. Créer branche (`feat/...`).
-2. Développer + mettre à jour schéma si endpoints.
-3. `make gen-all` puis commit des artefacts modifiés.
-4. Ouvrir PR avec description orientée "pourquoi".
-5. Reviewer valide (tests, lint, types). Merge squashed ou fast-forward selon politique.
+## 17. Contribution
+1. Créer branche.
+2. Implémenter feature / fix.
+3. Mettre à jour schéma + types si endpoints.
+4. Lancer tests + lint.
+5. Ouvrir PR (décrire le "pourquoi").
+6. Review & merge.
 
 ---
 ### Notes
-Ce document évoluera avec l'avancement du projet. N'hésite pas à proposer une PR pour le compléter.
+Ce document évolue avec le projet. Propose des PR pour le compléter.
