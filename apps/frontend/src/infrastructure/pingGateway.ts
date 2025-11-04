@@ -1,10 +1,17 @@
 // Infrastructure layer: HTTP gateway
-import type { PingResult } from '../domain/ping';
+import type { PingResult } from '@domain/ping';
+import { apiBase } from '@infra/config';
+import { HttpError } from '@infra/errors';
 
-async function ping(): Promise<PingResult> {
-  const res = await fetch(`${import.meta.env.VITE_API_BASE}/ping`);
+/**
+ * Effectue un ping API.
+ * @throws HttpError si le statut HTTP n'est pas OK.
+ */
+async function ping(signal?: AbortSignal): Promise<PingResult> {
+  const url = `${apiBase()}/ping`;
+  const res = await fetch(url, { signal });
   if (!res.ok) {
-    throw new Error(`Ping failed with status ${res.status}`);
+    throw new HttpError(`Ping failed with status ${res.status}`, res.status, url);
   }
   const data = (await res.json()) as PingResult;
   return data;

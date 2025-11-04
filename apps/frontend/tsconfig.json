@@ -11,7 +11,14 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "lib": ["ES2020", "DOM"],
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    "baseUrl": "src",
+    "paths": {
+      "@domain/*": ["domain/*"],
+      "@app/*": ["application/*"],
+      "@infra/*": ["infrastructure/*"],
+      "@ui/*": ["interface/*"]
+    }
   },
   "include": ["src"],
   "references": []

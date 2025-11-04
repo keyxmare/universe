@@ -5,7 +5,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { AppMeta } from '../../domain/app';
+import type { AppMeta } from '@domain/app';
 
 
 const props = defineProps<{ app: AppMeta }>();

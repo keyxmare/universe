@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils';
 import PingView from '../../src/interface/views/PingView.vue';
 import { createI18n } from 'vue-i18n';
 import { messages } from '../../src/interface/i18n/messages';
+import { apiBase } from '../../src/infrastructure/config';
 
 // Simple fetch mock helper
 async function flushPromises() { await new Promise(r => setTimeout(r, 0)); }
@@ -30,7 +31,7 @@ describe('PingView', () => {
     await flushPromises();
     await wrapper.vm.$nextTick();
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(`${import.meta.env.VITE_API_BASE}/ping`);
+    expect(globalThis.fetch).toHaveBeenCalledWith(`${apiBase()}/ping`, { signal: undefined });
     const pre = wrapper.get('pre');
     expect(pre.text()).toContain('"pong": true');
   });

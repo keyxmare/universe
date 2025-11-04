@@ -9,8 +9,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import type { PingResult } from '../../domain/ping';
-import { performPing } from '../../application/pingService';
+import type { PingResult } from '@domain/ping';
+import { performPing } from '@app/pingService';
 
 const { t } = useI18n();
 const loading = ref(false);

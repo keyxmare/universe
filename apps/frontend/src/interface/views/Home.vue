@@ -6,7 +6,7 @@
 </template>
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
-import { applications } from '../../domain/app';
+import { applications } from '@domain/app';
 import AppGrid from '../components/AppGrid.vue';
 
 const router = useRouter();

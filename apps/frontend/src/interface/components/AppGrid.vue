@@ -9,7 +9,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import type { AppMeta } from '../../domain/app';
+import type { AppMeta } from '@domain/app';
 import AppCard from './AppCard.vue';
 
 

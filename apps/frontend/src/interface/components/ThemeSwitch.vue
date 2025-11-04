@@ -1,24 +1,18 @@
 <template>
   <fieldset class="theme-switch">
     <legend class="sr-only">{{ $t('app.theme') }}</legend>
-    <label :class="{ active: current === 'light' }">
-      <input v-model="current" type="radio" name="theme" value="light" />
-      <span>{{ $t('app.themeLight') }}</span>
-    </label>
-    <label :class="{ active: current === 'dark' }">
-      <input v-model="current" type="radio" name="theme" value="dark" />
-      <span>{{ $t('app.themeDark') }}</span>
-    </label>
-    <label :class="{ active: current === 'system' }">
-      <input v-model="current" type="radio" name="theme" value="system" />
-      <span>{{ $t('app.themeSystem') }}</span>
+    <label v-for="opt in options" :key="opt" :class="{ active: current === opt }">
+      <input v-model="current" type="radio" name="theme" :value="opt" />
+      <span>{{ $t(`app.theme${capitalize(opt)}`) }}</span>
     </label>
   </fieldset>
 </template>
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue';
+import { Theme, resolveEffective, getInitialTheme, persistTheme } from '@app/themeService';
 
-type Theme = 'light' | 'dark' | 'system';
+const options: Theme[] = ['light', 'dark', 'system'];
+function capitalize(t: string) { return t.charAt(0).toUpperCase() + t.slice(1); }
 const current = ref<Theme>('system');
 
 function getMatchMedia() {
@@ -27,36 +21,25 @@ function getMatchMedia() {
   return typeof w.matchMedia === 'function' ? w.matchMedia('(prefers-color-scheme: dark)') : null;
 }
 
-function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-  let final: 'light' | 'dark';
-  if (theme === 'system') {
-    const mm = getMatchMedia();
-    final = mm && mm.matches ? 'dark' : 'light';
-  } else {
-    final = theme;
-  }
-  root.dataset.theme = final;
-  try { localStorage.setItem('theme', theme); } catch (err) { /* ignore persistence errors */ }
+function apply(theme: Theme) {
+  const mm = getMatchMedia();
+  const final = resolveEffective(theme, !!mm?.matches);
+  document.documentElement.dataset.theme = final;
+  persistTheme(theme);
 }
 
 onMounted(() => {
-  let saved: Theme | null = null;
-  try { saved = localStorage.getItem('theme') as Theme | null; } catch (err) { /* ignore retrieval errors */ }
-  if (saved) {
-    current.value = saved;
-  }
-  applyTheme(current.value);
-  // Update on system change if system selected
-  const mq = getMatchMedia();
-  if (mq) {
-    mq.addEventListener('change', () => {
-      if (current.value === 'system') applyTheme('system');
+  const mm = getMatchMedia();
+  current.value = getInitialTheme(!!mm?.matches);
+  apply(current.value);
+  if (mm) {
+    mm.addEventListener('change', () => {
+      if (current.value === 'system') apply('system');
     });
   }
 });
 
-watch(current, t => applyTheme(t));
+watch(current, t => apply(t));
 </script>
 <style scoped>
 .theme-switch {
