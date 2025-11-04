@@ -8,7 +8,11 @@ export const messages = {
       pingApi: 'Ping API',
       pingButton: 'Ping',
       errorPrefix: 'Erreur',
-      unknownError: 'Erreur inconnue'
+      unknownError: 'Erreur inconnue',
+      theme: 'Thème',
+      themeLight: 'Clair',
+      themeDark: 'Sombre',
+      themeSystem: 'Système'
     },
     nav: {
       home: 'Accueil',
@@ -30,7 +34,11 @@ export const messages = {
       pingApi: 'Ping API',
       pingButton: 'Ping',
       errorPrefix: 'Error',
-      unknownError: 'Unknown error'
+      unknownError: 'Unknown error',
+      theme: 'Theme',
+      themeLight: 'Light',
+      themeDark: 'Dark',
+      themeSystem: 'System'
     },
     nav: {
       home: 'Home',
@@ -52,7 +60,11 @@ export const messages = {
       pingApi: 'Ping API',
       pingButton: 'Ping',
       errorPrefix: 'エラー',
-      unknownError: '不明なエラー'
+      unknownError: '不明なエラー',
+      theme: 'テーマ',
+      themeLight: 'ライト',
+      themeDark: 'ダーク',
+      themeSystem: 'システム'
     },
     nav: {
       home: 'ホーム',
