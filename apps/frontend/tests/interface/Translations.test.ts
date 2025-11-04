@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import App from '../../src/interface/App.vue';
 import Home from '../../src/interface/views/Home.vue';
-import PingView from '../../src/interface/views/PingView.vue';
+
 import ProjetsView from '../../src/interface/views/ProjetsView.vue';
 import router from '../../src/interface/router';
 import { messages } from '../../src/interface/i18n/messages';
@@ -23,10 +23,10 @@ describe('i18n structure', () => {
       expect(m.nav).toBeTruthy();
       expect(m.apps).toBeTruthy();
       // Check required app keys
-      ['title','applications','projets','projetsDescription','pingApi','pingButton','errorPrefix','unknownError']
+      ['title','applications','projets','projetsDescription','errorPrefix','unknownError']
         .forEach(k => expect(m.app[k]).toBeTypeOf('string'));
       // Check nav keys
-      ['home','ping'].forEach(k => expect(m.nav[k]).toBeTypeOf('string'));
+      ['home'].forEach(k => expect(m.nav[k]).toBeTypeOf('string'));
       // Each application id has name + description
       applications.forEach(a => {
         expect(m.apps[a.id]).toBeTruthy();
@@ -48,7 +48,7 @@ describe('Rendered wordings use i18n keys', () => {
         const text = wrapper.text();
         expect(text).toContain(messages[locale].app.title);
         expect(text).toContain(messages[locale].nav.home);
-        expect(text).toContain(messages[locale].nav.ping);
+
       });
 
       it('renders applications heading', async () => {
@@ -74,32 +74,9 @@ describe('Rendered wordings use i18n keys', () => {
         expect(content).toContain(messages[locale].app.projetsDescription);
       });
 
-      it('renders ping view static wording', async () => {
-        const i18n = makeI18n(locale);
-        router.push('/ping');
-        await router.isReady();
-        const wrapper = mount(PingView, { global: { plugins: [i18n, router] } });
-        const content = wrapper.text();
-        expect(content).toContain(messages[locale].app.pingApi);
-        expect(content).toContain(messages[locale].app.pingButton);
-      });
+
     });
   });
 });
 
-describe('Ping view non-Error path translation', () => {
-  locales.forEach(locale => {
-    it(`uses unknownError (${locale}) translation on primitive rejection`, async () => {
-      const i18n = makeI18n(locale);
-      router.push('/ping');
-      await router.isReady();
-      const wrapper = mount(PingView, { global: { plugins: [i18n, router] } });
-      (globalThis.fetch as any) = () => Promise.reject('primitive');
-      const button = wrapper.get('button');
-      await button.trigger('click');
-      await new Promise(r => setTimeout(r, 0));
-      await wrapper.vm.$nextTick();
-      expect(wrapper.text()).toContain(`${messages[locale].app.errorPrefix}: ${messages[locale].app.unknownError}`);
-    });
-  });
-});
+

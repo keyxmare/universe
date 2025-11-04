@@ -3,7 +3,7 @@
     <h1>{{ $t('app.title') }}</h1>
     <nav>
       <RouterLink to="/">{{ $t('nav.home') }}</RouterLink> |
-      <RouterLink to="/ping">{{ $t('nav.ping') }}</RouterLink>
+
     </nav>
     <ThemeSwitch />
     <RouterView />

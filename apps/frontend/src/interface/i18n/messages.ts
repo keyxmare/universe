@@ -5,8 +5,6 @@ export const messages = {
       applications: 'Applications',
       projets: 'Projets',
       projetsDescription: 'Cette application permettra de gérer les projets (placeholder).',
-      pingApi: 'Ping API',
-      pingButton: 'Ping',
       errorPrefix: 'Erreur',
       unknownError: 'Erreur inconnue',
       theme: 'Thème',
@@ -15,8 +13,7 @@ export const messages = {
       themeSystem: 'Système'
     },
     nav: {
-      home: 'Accueil',
-      ping: 'Ping'
+      home: 'Accueil'
     },
     apps: {
       projets: {
@@ -31,8 +28,6 @@ export const messages = {
       applications: 'Applications',
       projets: 'Projects',
       projetsDescription: 'This application will manage projects (placeholder).',
-      pingApi: 'Ping API',
-      pingButton: 'Ping',
       errorPrefix: 'Error',
       unknownError: 'Unknown error',
       theme: 'Theme',
@@ -41,8 +36,7 @@ export const messages = {
       themeSystem: 'System'
     },
     nav: {
-      home: 'Home',
-      ping: 'Ping'
+      home: 'Home'
     },
     apps: {
       projets: {
@@ -57,8 +51,6 @@ export const messages = {
       applications: 'アプリケーション',
       projets: 'プロジェクト',
       projetsDescription: 'このアプリはプロジェクトを管理します（プレースホルダー）',
-      pingApi: 'Ping API',
-      pingButton: 'Ping',
       errorPrefix: 'エラー',
       unknownError: '不明なエラー',
       theme: 'テーマ',
@@ -67,8 +59,7 @@ export const messages = {
       themeSystem: 'システム'
     },
     nav: {
-      home: 'ホーム',
-      ping: 'Ping'
+      home: 'ホーム'
     },
     apps: {
       projets: {
