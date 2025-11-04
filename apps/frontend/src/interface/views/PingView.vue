@@ -1,16 +1,18 @@
 <template>
   <section>
-    <h2>Ping API</h2>
-    <button :disabled="loading" @click="doPing">Ping</button>
-    <p v-if="error" style="color:red">Erreur: {{ error }}</p>
+    <h2>{{ $t('app.pingApi') }}</h2>
+    <button :disabled="loading" @click="doPing">{{ $t('app.pingButton') }}</button>
+    <p v-if="error" style="color:red">{{ $t('app.errorPrefix') }}: {{ error }}</p>
     <pre v-if="data">{{ JSON.stringify(data, null, 2) }}</pre>
   </section>
 </template>
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { PingResult } from '../../domain/ping';
 import { performPing } from '../../application/pingService';
 
+const { t } = useI18n();
 const loading = ref(false);
 
 const data = ref<PingResult | null>(null);
@@ -27,7 +29,7 @@ async function doPing() {
     if (e instanceof Error) {
       error.value = e.message;
     } else {
-      error.value = 'Erreur inconnue';
+      error.value = t('app.unknownError');
     }
   } finally {
     loading.value = false;

@@ -1,9 +1,9 @@
 <template>
   <main>
-    <h1>Frontend Vue</h1>
+    <h1>{{ $t('app.title') }}</h1>
     <nav>
-      <RouterLink to="/">Home</RouterLink> |
-      <RouterLink to="/ping">Ping</RouterLink>
+      <RouterLink to="/">{{ $t('nav.home') }}</RouterLink> |
+      <RouterLink to="/ping">{{ $t('nav.ping') }}</RouterLink>
     </nav>
     <RouterView />
   </main>

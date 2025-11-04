@@ -1,7 +1,7 @@
 <template>
-  <div class="app-card" role="button" :aria-label="app.name" @click="onSelect">
-    <h3>{{ app.name }}</h3>
-    <p v-if="app.description">{{ app.description }}</p>
+  <div class="app-card" role="button" :aria-label="$t(`apps.${app.id}.name`)" @click="onSelect">
+    <h3>{{ $t(`apps.${app.id}.name`) }}</h3>
+    <p>{{ $t(`apps.${app.id}.description`) }}</p>
   </div>
 </template>
 <script setup lang="ts">

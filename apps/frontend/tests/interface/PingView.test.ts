@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import PingView from '../../src/interface/views/PingView.vue';
+import { createI18n } from 'vue-i18n';
+import { messages } from '../../src/interface/i18n/messages';
 
 // Simple fetch mock helper
 async function flushPromises() { await new Promise(r => setTimeout(r, 0)); }
@@ -19,7 +21,8 @@ describe('PingView', () => {
 
   it('performs ping and displays result', async () => {
     mockFetchOnce({ pong: true });
-    const wrapper = mount(PingView);
+    const i18n = createI18n({ legacy: false, locale: 'fr', messages });
+    const wrapper = mount(PingView, { global: { plugins: [i18n] } });
 
     const button = wrapper.get('button');
     await button.trigger('click');
@@ -34,7 +37,8 @@ describe('PingView', () => {
 
   it('shows error on failed ping', async () => {
     mockFetchOnce({ message: 'fail' }, false, 500);
-    const wrapper = mount(PingView);
+    const i18n = createI18n({ legacy: false, locale: 'fr', messages });
+    const wrapper = mount(PingView, { global: { plugins: [i18n] } });
     const button = wrapper.get('button');
     await button.trigger('click');
     await flushPromises();

@@ -1,7 +1,7 @@
 <template>
   <section>
-    <h2>Projets</h2>
-    <p>Cette application permettra de gérer les projets (placeholder).</p>
+    <h2>{{ $t('app.projets') }}</h2>
+    <p>{{ $t('app.projetsDescription') }}</p>
   </section>
 </template>
 <script setup lang="ts"></script>

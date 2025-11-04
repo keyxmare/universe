@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h2>Applications</h2>
+    <h2>{{ $t('app.applications') }}</h2>
     <AppGrid :apps="applications" @select="goTo" />
   </section>
 </template>
